@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<title>千両すごろく</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#f2ece0;--card:#fffaf0;--ink:#2b2620;--sub:#7a6f60;--line:#d9cdb6;--acc:#a23b25;--ok:#2f8a4a;--bad:#c0392b;
+  --s0:#3d7cc9;--s1:#3f9a55;--s2:#d4a017;--s3:#c8463a;--p0:#d9442f;--p1:#2f66d0;--p2:#2a9a4a;--p3:#e0a000}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Kaku Gothic ProN","Yu Gothic UI","Meiryo",sans-serif;font-size:15px;line-height:1.5}
+#app{max-width:720px;margin:0 auto;padding:10px 12px 40px}
+h1{font-size:30px;margin:12px 0 2px;letter-spacing:.08em}
+.subt{color:var(--sub);margin:0 0 12px}
+.btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 13px;border-radius:10px;cursor:pointer}
+.btn:hover{border-color:var(--acc)}
+.btn.main{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:bold}
+.btn.small{padding:4px 9px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:default}
+.big{font-size:18px;padding:12px 16px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0}
+.note{color:var(--sub);font-size:13px;margin:3px 0}
+.msg.bad{color:var(--bad)}
+.top{display:flex;gap:8px;align-items:center;margin:2px 0 6px}
+.top .ttl{font-weight:bold;flex:1}
+/* 人の一覧 */
+.pls{display:grid;grid-template-columns:repeat(2,1fr);gap:5px}
+.pl{border:2px solid var(--line);border-radius:9px;padding:3px 7px;background:var(--card);font-size:13px;min-width:0}
+.pl.cur{border-color:var(--ink);box-shadow:0 0 0 2px rgba(0,0,0,.07)}
+.pl .nm{font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px}
+.pl .tag{font-size:11px;border-radius:5px;padding:0 4px;color:#fff;background:#7a3b8a;font-weight:normal}
+.pl .tag.rest{background:#777}
+.pdot{width:12px;height:12px;border-radius:50%;flex:none;border:1px solid rgba(0,0,0,.35)}
+/* 盤 */
+.board{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);gap:2px;aspect-ratio:1;max-width:560px;margin:8px auto;background:#b89a68;padding:3px;border-radius:10px}
+.cell{background:#fbf3e2;border-radius:4px;position:relative;font-size:10px;line-height:1.15;padding:2px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center}
+.cell .band{position:absolute;left:0;right:0;top:0;height:5px}
+.cell .cn{margin-top:4px;font-weight:bold;white-space:nowrap}
+.cell .pr{color:var(--sub)}
+.cell.corner{background:#efe0bf}
+.cell.owned{box-shadow:inset 0 0 0 3px var(--oc)}
+.cell .lv{color:#b8860b;font-size:10px;letter-spacing:-1px}
+.cell .toks{position:absolute;bottom:2px;left:0;right:0;display:flex;justify-content:center;gap:1px;flex-wrap:wrap}
+.cell .tok{width:12px;height:12px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.5)}
+.cell.hl{outline:3px solid #222;outline-offset:-3px}
+.center{grid-column:2/8;grid-row:2/8;background:#f7edd8;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6px;gap:4px}
+.center .day{font-size:15px;font-weight:bold}
+.center .dice{font-size:34px;letter-spacing:4px;line-height:1}
+.center .who{font-size:14px}
+.center .ev{font-size:13px;min-height:2.4em}
+/* 操作 */
+.act{background:var(--card);border:2px solid var(--acc);border-radius:12px;padding:10px 12px;margin:8px 0}
+.act .q{font-weight:bold;margin-bottom:4px}
+.items{display:flex;gap:6px;flex-wrap:wrap}
+.item{border:1px solid #c9a96a;background:#fff6dc;border-radius:8px;padding:4px 8px;font-size:13px;cursor:pointer}
+.item:disabled{opacity:.5;cursor:default}
+.fist{display:flex;gap:8px;justify-content:center}
+.fist .btn{font-size:16px;padding:10px 12px;min-width:92px}
+.fist .btn small{display:block;font-size:11px;color:var(--sub)}
+.log{font-size:12px;color:var(--sub);max-height:120px;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:5px 8px}
+.res td,.res th{padding:3px 8px;border-bottom:1px solid var(--line);text-align:right}
+.res td:first-child,.res th:first-child{text-align:left}
+.res{border-collapse:collapse;width:100%;font-size:14px}
+textarea,input[type=text]{font:inherit;width:100%;border:1px solid var(--line);border-radius:8px;padding:7px;background:#fff;color:var(--ink)}
+textarea{font-family:Consolas,monospace;font-size:12px}
+.seat{display:flex;gap:8px;align-items:center;border-top:1px dashed var(--line);padding:6px 0}
+.seat:first-child{border-top:none}
+.seat .nm{flex:1;min-width:0}
+.slot{border:1px dashed var(--line);border-radius:10px;padding:8px;margin:6px 0}
+.ok{background:#e7f4ea;border:1px solid #9ccfa9;border-radius:10px;padding:8px 12px;margin:8px 0}
+.sound{position:fixed;right:10px;bottom:10px;font-size:12px}
+.cover{text-align:center;padding:20px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<button class="btn small sound" id="bSound"></button>
+<script>
+"use strict";
+/* ================= 千両すごろく =================
+   江戸の町を買い、狐拳の勝負で奪い合う。決まった日数でいちばんの長者が勝ち。
+   モノポリー（町・通りの倍づけ・店）とドカポン（同じマスで勝負・ビリの逆転）の芯を、30分に縮めた。
+   仕組み（advance/act）は画面から切り離し、コンピュータ・試算・通信が同じ関数を使う */
+const QS=new URLSearchParams(location.search);
+const FAST=QS.has("mute");
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+function rnd(S){let a=S.seed|0;a=a+0x6D2B79F5|0;S.seed=a;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}
+
+const CFG={DAYS:16,START:400,SEAT_BONUS:25,SALARY:100,RENT:.3,LVMUL:[1,2,4,7],UP:.5,MATE:.5,MAXLV:3,HAND:3,
+  TAX:[20,10],FEST:10,LOT_COST:20,LOT_WIN:250,STEAL:.2,BONUS:150,
+  YAKE_DAY:4,YAKE_GAP:450,YAKE_TURNS:3,DUEL_ROUNDS:3};
+const STREETS=[{n:"魚河岸通り",c:"var(--s0)"},{n:"呉服通り",c:"var(--s1)"},{n:"両替通り",c:"var(--s2)"},{n:"芝居通り",c:"var(--s3)"}];
+const TOWNS=[["小網町","本船町","小田原町","安針町"],["駿河町","本町","室町","大伝馬町"],["本両替町","金座","銀座","新両替町"],["堺町","葺屋町","木挽町","猿若町"]];
+// 盤: 28マス。四すみ＝日本橋（出発）・茶屋・富くじ・辻。各辺は 町・町・運だめし・町・年貢か祭り・町
+const CELLS=(()=>{const a=[];const corner=[{t:"start",n:"日本橋"},{t:"tea",n:"茶屋"},{t:"lot",n:"富くじ"},{t:"cross",n:"辻"}];
+  for(let k=0;k<4;k++){a.push(corner[k]);let ti=0;const base=60+50*k;
+    for(const kind of ["town","town","luck","town",k%2?"fest":"tax","town"]){
+      if(kind==="town"){const price=base+(ti>=2?20:0);a.push({t:"town",st:k,n:TOWNS[k][ti],price});ti++}
+      else a.push({t:kind,n:{luck:"運だめし",tax:"年貢",fest:"祭り"}[kind]})}}
+  return a})();
+const NC=CELLS.length;
+const ITEMS={
+  haya:{n:"早駆け",d:"このターン、さいころを3つ振る",tgt:false},
+  tome:{n:"足止め",d:"相手1人を、次の番だけ休みにする",tgt:true},
+  kaji:{n:"火事",d:"相手の町1つの店を焼いて、ただの町に戻す",tgt:true},
+  bou:{n:"用心棒",d:"持っていると、勝負に負けても1回だけ取られない（自動）",tgt:false,passive:true}
+};
+const ITEM_KEYS=["haya","tome","kaji","bou"];
+const FIST=[{n:"狐",e:"🦊",d:"庄屋に勝つ"},{n:"庄屋",e:"👴",d:"鉄砲に勝つ"},{n:"鉄砲",e:"🔫",d:"狐に勝つ"}];
+const COLORS=["var(--p0)","var(--p1)","var(--p2)","var(--p3)"],CNAME=["赤","青","緑","黄"];
+
+/* ---------- 仕組み ---------- */
+function newGame(seats,opts){
+  opts=opts||{};
+  const S={seed:(opts.seed||Date.now())|0,days:opts.days||CFG.DAYS,day:1,cur:0,phase:"start",wait:null,over:false,
+    owner:new Array(NC).fill(-1),lv:new Array(NC).fill(0),log:[],ev:"",dice:null,move:null,duel:null,metDone:false,
+    ps:seats.map((s,i)=>({name:s.name,kind:s.kind,cid:s.cid||null,cash:CFG.START+CFG.SEAT_BONUS*i,pos:0,items:[],skip:0,yake:0,yakeUsed:false,wins:0,losses:0,rentGot:0,i}))};
+  advance(S);return S;
+}
+function log(S,t){S.ev=t;S.log.unshift(t);if(S.log.length>60)S.log.pop()}
+function rent(S,c,lv){const C=CELLS[c];if(C.t!=="town")return 0;const o=S.owner[c];const mates=o<0?0:sameStreet(S,o,C.st)-1;return Math.round(C.price*CFG.RENT*CFG.LVMUL[lv==null?S.lv[c]:lv]*(1+CFG.MATE*mates))}
+function sameStreet(S,p,st){let n=0;for(let c=0;c<NC;c++)if(CELLS[c].t==="town"&&CELLS[c].st===st&&S.owner[c]===p)n++;return n}
+function fullStreet(S,st){let o=-2;for(let c=0;c<NC;c++)if(CELLS[c].t==="town"&&CELLS[c].st===st){if(o===-2)o=S.owner[c];else if(S.owner[c]!==o)return -1}return o>=0?o:-1}
+function upCost(c){return Math.round(CELLS[c].price*CFG.UP)}
+function townValue(S,c){return CELLS[c].price+S.lv[c]*upCost(c)}
+function towns(S,p){const a=[];for(let c=0;c<NC;c++)if(S.owner[c]===p)a.push(c);return a}
+function assets(S,p){return S.ps[p].cash+towns(S,p).reduce((a,c)=>a+townValue(S,c),0)}
+function rank(S){return S.ps.map((P,i)=>i).sort((a,b)=>assets(S,b)-assets(S,a))}
+// 払えないときは、安い町から半値で手放して払う（脱落はしない）
+function pay(S,p,amt,to){
+  const P=S.ps[p];
+  while(P.cash<amt){const ts=towns(S,p).sort((a,b)=>townValue(S,a)-townValue(S,b));if(!ts.length)break;const c=ts[0];P.cash+=Math.floor(townValue(S,c)/2);S.owner[c]=-1;S.lv[c]=0;log(S,`${P.name}は${CELLS[c].n}を手放した`)}
+  const got=Math.min(P.cash,amt);P.cash-=got;if(to!=null&&to>=0){S.ps[to].cash+=got}return got;
+}
+function giveItem(S,p){const P=S.ps[p];if(P.items.length>=CFG.HAND)return null;const k=ITEM_KEYS[(rnd(S)*ITEM_KEYS.length)|0];P.items.push(k);return k}
+function yakeOK(S,p){
+  const P=S.ps[p];if(P.yakeUsed||P.yake||S.day<CFG.YAKE_DAY||S.day>S.days-1)return false;
+  const r=rank(S);return r[r.length-1]===p&&assets(S,r[0])-assets(S,p)>=CFG.YAKE_GAP;
+}
+function advance(S){
+  let guard=0;
+  while(!S.over&&!S.wait&&guard++<300){
+    const p=S.cur,P=S.ps[p];
+    switch(S.phase){
+      case "start":
+        S.metDone=false;S.dice=null;S.move=null;
+        if(P.skip){P.skip=0;log(S,`${P.name}は足止めされて休み`);S.phase="end";break}
+        if(yakeOK(S,p)){S.wait={who:[p],k:"yake"};break}
+        S.phase="pre";break;
+      case "pre":S.wait={who:[p],k:"pre"};break;
+      case "land":land(S);break;
+      case "meet":{
+        S.phase="end";
+        if(S.metDone)break;S.metDone=true;
+        const here=S.ps.filter((Q,j)=>j!==p&&Q.pos===P.pos).map(Q=>Q.i);
+        if(P.pos!==0&&here.length)S.wait={who:[p],k:"duel",targets:here};
+        break}
+      case "end":endTurn(S);break;
+      default:S.phase="end";
+    }
+  }
+}
+function roll(S){
+  const p=S.cur,P=S.ps[p];const n=S.useHaya||P.yake?3:2;S.useHaya=false;
+  const d=[];for(let k=0;k<n;k++)d.push(1+((rnd(S)*6)|0));S.dice=d;
+  const steps=d.reduce((a,b)=>a+b,0),from=P.pos;let passed=false;
+  for(let k=1;k<=steps;k++){if((from+k)%NC===0&&k<steps)passed=true}
+  P.pos=(from+steps)%NC;S.moveNo=(S.moveNo||0)+1;S.move={p,from,steps,no:S.moveNo};
+  let t=`${P.name}は${steps}進んだ`;
+  if(passed||P.pos===0){P.cash+=CFG.SALARY;t+=`（日本橋で給金${CFG.SALARY}両）`}
+  log(S,t);S.phase="land";
+}
+function land(S){
+  const p=S.cur,P=S.ps[p],c=P.pos,C=CELLS[c];
+  S.phase="meet";
+  if(C.t==="town"){
+    const o=S.owner[c];
+    if(o<0){if(P.cash>=C.price)S.wait={who:[p],k:"buy",c};else log(S,`${C.n}（${C.price}両）を買うお金が足りない`)}
+    else if(o===p){if(S.lv[c]<CFG.MAXLV&&P.cash>=upCost(c))S.wait={who:[p],k:"up",c}}
+    else{
+      const r=rent(S,c);
+      if(P.yake){log(S,`${P.name}はやけっぱちで、${C.n}の払い${r}両を踏み倒した！`)}
+      else{const got=pay(S,p,r,o);S.ps[o].rentGot+=got;log(S,`${P.name}は${S.ps[o].name}の${C.n}で${got}両はらった`)}
+    }
+  }else if(C.t==="luck"){
+    const x=rnd(S);
+    if(x<.55){const k=giveItem(S,p);log(S,k?`運だめし: 「${ITEMS[k].n}」の札を手に入れた`:"運だめし: 札がいっぱいで、もらえなかった")}
+    else if(x<.8){const v=[30,50,80][(rnd(S)*3)|0];P.cash+=v;log(S,`運だめし: 小判を${v}両ひろった`)}
+    else{const v=[20,40,60][(rnd(S)*3)|0];const got=pay(S,p,v,null);log(S,`運だめし: すりに${got}両すられた`)}
+  }else if(C.t==="tax"){
+    const v=CFG.TAX[0]+CFG.TAX[1]*towns(S,p).length;const got=pay(S,p,v,null);log(S,`年貢: ${got}両おさめた（町1つにつき${CFG.TAX[1]}両）`);
+  }else if(C.t==="fest"){
+    let sum=0;S.ps.forEach((Q,j)=>{if(j!==p)sum+=pay(S,j,CFG.FEST,p)});log(S,`祭り: みんなから${sum}両あつまった`);
+  }else if(C.t==="tea"){
+    const k=giveItem(S,p);log(S,k?`茶屋で一服。「${ITEMS[k].n}」の札をもらった`:"茶屋で一服（札はいっぱい）");
+  }else if(C.t==="lot"){
+    if(P.cash>=CFG.LOT_COST){P.cash-=CFG.LOT_COST;if(rnd(S)<1/6){P.cash+=CFG.LOT_WIN;log(S,`富くじ: 大当たり！ ${CFG.LOT_WIN}両！`)}else log(S,`富くじ: ${CFG.LOT_COST}両で買ったが、はずれ`)}
+  }else if(C.t==="cross"){
+    const ts=S.ps.filter((Q,j)=>j!==p).map(Q=>Q.i);S.metDone=true;
+    S.wait={who:[p],k:"duel",targets:ts,cross:true};log(S,"辻: だれにでも勝負を挑める");
+  }
+}
+function endTurn(S){
+  const P=S.ps[S.cur];if(P.yake){P.yake--;if(!P.yake)log(S,`${P.name}のやけっぱちがおさまった`)}
+  S.cur++;
+  if(S.cur>=S.ps.length){S.cur=0;S.day++;if(S.day>S.days){finish(S);return}}
+  S.phase="start";
+}
+function finish(S){
+  S.over=true;S.wait=null;
+  const n=S.ps.length,best=(f)=>{let m=-1,who=[];for(let i=0;i<n;i++){const v=f(i);if(v>m){m=v;who=[i]}else if(v===m)who.push(i)}return m>0&&who.length===1?who[0]:-1};
+  S.bonus={town:best(i=>towns(S,i).length),duel:best(i=>S.ps[i].wins)};
+  S.final=S.ps.map((P,i)=>assets(S,i)+(S.bonus.town===i?CFG.BONUS:0)+(S.bonus.duel===i?CFG.BONUS:0));
+  const order=S.ps.map((P,i)=>i).sort((a,b)=>S.final[b]-S.final[a]);S.order=order;
+  log(S,`${S.ps[order[0]].name}が千両長者！`);
+}
+function useItem(S,p,idx,t){
+  const P=S.ps[p],k=P.items[idx];if(!k||ITEMS[k].passive)return false;
+  if(k==="haya"){S.useHaya=true;log(S,`${P.name}は「早駆け」を使った`)}
+  else if(k==="tome"){if(t==null||t===p||!S.ps[t])return false;S.ps[t].skip=1;log(S,`${P.name}は${S.ps[t].name}に「足止め」！`)}
+  else if(k==="kaji"){if(t==null||t===p||!S.ps[t])return false;const ts=towns(S,t).filter(c=>S.lv[c]>0).sort((a,b)=>S.lv[b]-S.lv[a]||CELLS[b].price-CELLS[a].price);
+    if(!ts.length)return false;S.lv[ts[0]]=0;log(S,`${P.name}の「火事」で、${S.ps[t].name}の${CELLS[ts[0]].n}の店が焼けた！`)}
+  P.items.splice(idx,1);return true;
+}
+function canUse(S,p,k){if(k==="bou")return false;if(k==="haya")return !S.useHaya;if(k==="kaji")return S.ps.some((Q,j)=>j!==p&&towns(S,j).some(c=>S.lv[c]>0));return true}
+// 決めごと。正しくない手は false
+function act(S,p,a){
+  const W=S.wait;if(!W||!W.who.includes(p)||!a)return false;
+  switch(W.k){
+    case "yake":
+      S.wait=null;
+      if(a.y){const P=S.ps[p];P.yake=CFG.YAKE_TURNS;P.yakeUsed=true;const lost=P.cash;P.cash=0;P.items=[];log(S,`${P.name}がやけっぱちに！ 小判${lost}両と札を捨て、${CFG.YAKE_TURNS}番のあいだ さいころ3つ・払い踏み倒し・勝負の取り分が倍`)}
+      S.phase="pre";break;
+    case "pre":
+      if(a.k==="roll"){S.wait=null;roll(S);break}
+      if(a.k==="item"){const P=S.ps[p],k=P.items[a.i];if(!k||!canUse(S,p,k))return false;
+        if(ITEMS[k].tgt){if(a.t==null)return false;if(!useItem(S,p,a.i,a.t))return false}else if(!useItem(S,p,a.i))return false;
+        S.wait={who:[p],k:"pre"};return true}
+      return false;
+    case "buy":{
+      S.wait=null;const c=W.c,P=S.ps[p];
+      if(a.y&&P.cash>=CELLS[c].price&&S.owner[c]<0){P.cash-=CELLS[c].price;S.owner[c]=p;log(S,`${P.name}は${CELLS[c].n}を${CELLS[c].price}両で買った`+(sameStreet(S,p,CELLS[c].st)>=2?`　${STREETS[CELLS[c].st].n}の町が${sameStreet(S,p,CELLS[c].st)}つに！ 払いが上がる`:""))}
+      break}
+    case "up":{
+      S.wait=null;const c=W.c,P=S.ps[p];
+      if(a.y&&P.cash>=upCost(c)&&S.lv[c]<CFG.MAXLV){P.cash-=upCost(c);S.lv[c]++;log(S,`${P.name}は${CELLS[c].n}の店を広げた（${"★".repeat(S.lv[c])}）`)}
+      break}
+    case "duel":{
+      if(a.t!=null&&a.t>=0&&!W.targets.includes(a.t))return false;
+      S.wait=null;
+      if(a.t==null||a.t<0)break;
+      S.duel={a:p,b:a.t,round:1,picks:{}};log(S,`${S.ps[p].name}が${S.ps[a.t].name}に勝負を挑んだ！`);
+      S.wait={who:[p,a.t],k:"fist",picks:{}};break}
+    case "fist":{
+      if(!(a.f>=0&&a.f<=2)||W.picks[p]!=null)return false;
+      W.picks[p]=a.f;
+      if(W.who.every(q=>W.picks[q]!=null))resolveFist(S);
+      return true}
+    case "prize":{
+      S.wait=null;const D=S.duel,w=D.win,l=D.lose,mult=S.ps[w].yake?2:1;
+      if(a.c==="town"){const ts=towns(S,l).sort((x,y)=>townValue(S,x)-townValue(S,y));
+        if(!ts.length)return false;const c=ts[0];S.owner[c]=w;log(S,`${S.ps[w].name}は${S.ps[l].name}から${CELLS[c].n}を奪った！`);
+        if(mult>1&&ts[1]!=null){S.owner[ts[1]]=w;log(S,`やけっぱちで、${CELLS[ts[1]].n}も奪った！`)}}
+      else{const v=Math.floor(S.ps[l].cash*CFG.STEAL*mult);S.ps[l].cash-=v;S.ps[w].cash+=v;log(S,`${S.ps[w].name}は${S.ps[l].name}から小判${v}両を奪った！`)}
+      S.duel=null;break}
+    default:return false;
+  }
+  advance(S);return true;
+}
+function resolveFist(S){
+  const W=S.wait,D=S.duel,pa=W.picks[D.a],pb=W.picks[D.b];
+  D.last=[pa,pb];
+  if(pa===pb){
+    log(S,`あいこ（${FIST[pa].e}）`);
+    if(D.round<CFG.DUEL_ROUNDS){D.round++;S.wait={who:[D.a,D.b],k:"fist",picks:{}};return}
+    log(S,"勝負つかず");S.duel=null;S.wait=null;advance(S);return;
+  }
+  const aWin=(pa+1)%3===pb;const w=aWin?D.a:D.b,l=aWin?D.b:D.a;
+  D.win=w;D.lose=l;S.ps[w].wins++;S.ps[l].losses++;
+  log(S,`${FIST[pa].e} 対 ${FIST[pb].e}　${S.ps[w].name}の勝ち！`);
+  const L=S.ps[l],bi=L.items.indexOf("bou");
+  S.wait=null;
+  if(bi>=0){L.items.splice(bi,1);log(S,`${L.name}の用心棒が守った！ 何も取られない`);S.duel=null;advance(S);return}
+  const hasTown=towns(S,l).length>0;
+  if(!hasTown&&L.cash<=0){S.duel=null;advance(S);return}
+  S.wait={who:[w],k:"prize",town:hasTown};
+}
+
+/* ---------- コンピュータ ---------- */
+function cpuAct(S,p){
+  const W=S.wait,P=S.ps[p],r=()=>Math.random();
+  const leader=rank(S).find(i=>i!==p);
+  switch(W.k){
+    case "yake":return {y:r()<.8};
+    case "pre":{
+      for(let i=0;i<P.items.length;i++){const k=P.items[i];if(!canUse(S,p,k))continue;
+        if(k==="tome"&&r()<.6)return {k:"item",i,t:leader};
+        if(k==="kaji"){const t=rank(S).find(j=>j!==p&&towns(S,j).some(c=>S.lv[c]>0));if(t!=null&&r()<.7)return {k:"item",i,t}}
+        if(k==="haya"&&r()<.35)return {k:"item",i}}
+      return {k:"roll"}}
+    case "buy":{const c=W.c,left=P.cash-CELLS[c].price;const want=towns(S,p).some(x=>CELLS[x].st===CELLS[c].st)?40:90;return {y:left>=want}}
+    case "up":{const c=W.c;return {y:P.cash-upCost(c)>=120}}
+    case "duel":{let best=-1,bv=0;for(const t of W.targets){const Q=S.ps[t];const v=Q.cash*CFG.STEAL+(towns(S,t).length?60:0)+(t===leader?40:0)-(Q.items.includes("bou")?999:0);if(v>bv){bv=v;best=t}}
+      return {t:bv>=35&&r()<.85?best:-1}}
+    case "fist":return {f:(r()*3)|0};
+    case "prize":{const D=S.duel,l=D.lose;const coin=S.ps[l].cash*CFG.STEAL;const ts=towns(S,l).sort((x,y)=>townValue(S,x)-townValue(S,y));const tv=ts.length?townValue(S,ts[0])*1.2:0;return {c:W.town&&tv>coin?"town":"coin"}}
+  }
+  return null;
+}
+
+/* ---------- 確認用の試算 ---------- */
+function lazyAct(S,p){const W=S.wait;switch(W.k){case "yake":return {y:false};case "pre":return {k:"roll"};case "buy":case "up":return {y:false};case "duel":return {t:-1};case "fist":return {f:(Math.random()*3)|0};case "prize":return {c:"coin"}}}
+function simGame(n,seed,lazy0){
+  const S=newGame(Array.from({length:n},(_,i)=>({name:"P"+i,kind:"cpu"})),{seed});let g=0,acts=0;
+  while(!S.over&&g++<20000){const p=S.wait.who.find(q=>!(S.wait.k==="fist"&&S.wait.picks[q]!=null));act(S,p,lazy0&&p===0?lazyAct(S,p):cpuAct(S,p));acts++}
+  return {S,acts};
+}
+
+/* ---------- 音 ---------- */
+const SND={on:store.get("senryo-sound",true),hardMute:FAST,ctx:null};
+function sfx(kind){
+  if(SND.hardMute||!SND.on)return;
+  try{
+    if(!SND.ctx)SND.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const a=SND.ctx,t=a.currentTime;
+    const tone=(f,d,type,v,dl)=>{const o=a.createOscillator(),g=a.createGain();o.type=type||"sine";o.frequency.setValueAtTime(f,t+(dl||0));g.gain.setValueAtTime(v||.12,t+(dl||0));g.gain.exponentialRampToValueAtTime(.001,t+(dl||0)+d);o.connect(g);g.connect(a.destination);o.start(t+(dl||0));o.stop(t+(dl||0)+d+.02)};
+    if(kind==="dice")for(let i=0;i<4;i++)tone(300+i*70,.04,"square",.05,i*.05);
+    if(kind==="step")tone(660,.03,"triangle",.06);
+    if(kind==="coin"){tone(1200,.06,"triangle",.1);tone(1600,.08,"triangle",.08,.05)}
+    if(kind==="pay")tone(260,.15,"sine",.1);
+    if(kind==="duel"){tone(200,.12,"sawtooth",.07);tone(300,.12,"sawtooth",.07,.12)}
+    if(kind==="win")[523,659,784,1047].forEach((f,i)=>tone(f,.18,"triangle",.13,i*.1));
+    if(kind==="pick")tone(740,.05,"sine",.08);
+  }catch(e){}
+}
+
+/* ---------- 画面 ---------- */
+const UI={screen:"title",setup:null,tgtFor:-1,cover:-1,anim:null,info:-1,quitAsk:false,name:store.get("senryo-name","")};
+let S=null;           // いまの対局（部屋の人の端末では本物、友だちの端末では届いた写し）
+let MYSEATS=[];       // この端末で操作する席
+const CPU_NAMES=["与太郎","お銀","鉄斎"];
+function myName(){return (UI.name||"").trim().slice(0,8)||"あなた"}
+
+function startLocal(seats,days){
+  S=newGame(seats,{days});MYSEATS=seats.map((s,i)=>s.kind==="me"?i:-1).filter(i=>i>=0);
+  UI.screen="play";UI.tgtFor=-1;UI.cover=-1;UI.anim=null;UI.lastMoveNo=0;
+  afterChange();
+}
+// 状態が変わったら: 動きの演出 → 描画 → コンピュータや通信
+let cpuT=0;
+function afterChange(){
+  if(!S)return;
+  const mv=S.move;
+  if(mv&&mv.no!==UI.lastMoveNo&&!FAST){UI.lastMoveNo=mv.no;UI.anim={p:mv.p,from:mv.from,k:0,steps:mv.steps};sfx("dice");stepAnim();return}
+  if(mv)UI.lastMoveNo=mv.no;
+  render();netBroadcast();
+  if(S.over){sfx("win");return}
+  clearTimeout(cpuT);
+  if(isHost()){
+    const W=S.wait;if(!W)return;
+    const cp=W.who.filter(q=>S.ps[q].kind==="cpu"&&!(W.k==="fist"&&W.picks[q]!=null));
+    if(cp.length)cpuT=setTimeout(()=>{if(!S||S.wait!==W)return;const q=cp[0];act(S,q,cpuAct(S,q));afterChange()},FAST?5:(W.k==="fist"?300:650));
+  }
+}
+function stepAnim(){
+  const A=UI.anim;if(!A)return;
+  render();
+  if(A.k>=A.steps){UI.anim=null;afterChange();return}
+  A.k++;sfx("step");setTimeout(stepAnim,110);
+}
+function isHost(){return !NET.guest}
+function localAct(p,a){
+  if(!S)return;
+  if(NET.guest){netSend({t:"act",p,a});UI.tgtFor=-1;return}
+  if(act(S,p,a)){UI.tgtFor=-1;const k=a&&a.k;if(k==="roll")sfx("dice");afterChange()}
+}
+function tokPos(i){
+  const A=UI.anim;if(A&&A.p===i)return (A.from+A.k)%NC;
+  return S.ps[i].pos;
+}
+function cellRC(i){if(i<=7)return [0,i];if(i<=13)return [i-7,7];if(i<=21)return [7,21-i];return [28-i,0]}
+function boardHTML(){
+  let h=`<div class="board">`;
+  for(let c=0;c<NC;c++){
+    const C=CELLS[c],[r,cc]=cellRC(c),o=S.owner[c];
+    const cls=["cell"];if(["start","tea","lot","cross"].includes(C.t))cls.push("corner");if(o>=0)cls.push("owned");if(UI.info===c)cls.push("hl");
+    let inner="";
+    if(C.t==="town")inner=`<span class="band" style="background:${STREETS[C.st].c}"></span><span class="cn">${esc(C.n.slice(0,3))}</span><span class="pr">${C.price}</span>${S.lv[c]?`<span class="lv">${"★".repeat(S.lv[c])}</span>`:""}`;
+    else inner=`<span class="cn" style="margin-top:6px">${{start:"🏯",tea:"🍵",lot:"🎫",cross:"⚔️",luck:"🎲",tax:"📜",fest:"🏮"}[C.t]}</span><span>${esc(C.n)}</span>`;
+    const toks=S.ps.map((P,i)=>tokPos(i)===c?`<span class="tok" style="background:${COLORS[i]}"></span>`:"").join("");
+    h+=`<div class="${cls.join(" ")}" data-cell="${c}" style="grid-row:${r+1};grid-column:${cc+1};${o>=0?`--oc:${COLORS[o]};background:color-mix(in srgb, ${COLORS[o]} 14%, #fbf3e2)`:""}">${inner}<div class="toks">${toks}</div></div>`;
+  }
+  const P=S.ps[S.cur];
+  h+=`<div class="center"><div class="day">${S.over?"おしまい":`${S.day}日目／${S.days}日`}</div>
+    <div class="dice">${S.dice&&!S.over?S.dice.map(d=>"⚀⚁⚂⚃⚄⚅"[d-1]).join(""):""}</div>
+    ${S.over?"":`<div class="who"><span class="pdot" style="display:inline-block;vertical-align:-1px;background:${COLORS[S.cur]}"></span> ${esc(P.name)}の番</div>`}
+    <div class="ev">${esc(UI.anim?"":S.ev||"")}</div>${infoHTML()}</div></div>`;
+  return h;
+}
+function infoHTML(){
+  const c=UI.info;if(c<0)return "";const C=CELLS[c];
+  if(C.t!=="town"){const d={start:`通るか止まると給金${CFG.SALARY}両`,tea:"止まると札を1枚もらえる",lot:`${CFG.LOT_COST}両で富くじ。6回に1回 ${CFG.LOT_WIN}両`,cross:"止まると、だれにでも勝負を挑める",luck:"札・小判・すりのどれか",tax:`年貢 ${CFG.TAX[0]}両＋町1つにつき${CFG.TAX[1]}両`,fest:`ほかの人から${CFG.FEST}両ずつもらえる`}[C.t];return `<div class="note">${esc(C.n)}: ${esc(d)}</div>`}
+  const o=S.owner[c];
+  return `<div class="note">${esc(C.n)}（${STREETS[C.st].n}）${C.price}両　${o>=0?`持ち主: ${esc(S.ps[o].name)}　払い ${rent(S,c)}両`:`空き地。払い ${rent(S,c)}両から`}</div>`;
+}
+function playersHTML(){
+  return `<div class="pls">${S.ps.map((P,i)=>`<div class="pl ${!S.over&&S.cur===i?"cur":""}"><div class="nm"><span class="pdot" style="background:${COLORS[i]}"></span>${esc(P.name)}${P.yake?`<span class="tag">やけ${P.yake}</span>`:""}${P.skip?`<span class="tag rest">休み</span>`:""}</div>
+    <div>小判 ${P.cash}　資産 ${assets(S,i)}</div><div class="note" style="margin:0">町${towns(S,i).length}・勝負${P.wins}勝${P.items.length?"・札"+P.items.map(k=>ITEMS[k].n).join("/"):""}</div></div>`).join("")}</div>`;
+}
+function actionHTML(){
+  if(S.over)return endHTML();
+  if(UI.anim)return `<div class="act"><div class="q">…</div></div>`;
+  const W=S.wait;if(!W)return "";
+  const mine=W.who.filter(q=>MYSEATS.includes(q)&&!(W.k==="fist"&&W.picks[q]!=null));
+  if(!mine.length){
+    const names=W.who.filter(q=>!(W.k==="fist"&&W.picks[q]!=null)).map(q=>S.ps[q].name).join("・");
+    return `<div class="act"><div class="q">${esc(names)}が考えています…</div>${W.k==="fist"?`<div class="note">狐拳の勝負中</div>`:""}</div>`;
+  }
+  const p=mine[0],P=S.ps[p],who=MYSEATS.length>1?`<span class="pdot" style="display:inline-block;background:${COLORS[p]}"></span> ${esc(P.name)}: `:"";
+  // 同じ画面で2人以上が狐拳を選ぶときは、1人ずつ隠して選ぶ
+  if(W.k==="fist"&&MYSEATS.length>1&&W.who.filter(q=>MYSEATS.includes(q)).length>1&&UI.cover!==p)
+    return `<div class="act cover"><div class="q">${esc(P.name)}の番です。ほかの人は見ないでください</div><button class="btn main big" id="bUncover" data-p="${p}">${esc(P.name)}が選ぶ</button></div>`;
+  let h=`<div class="act">`;
+  switch(W.k){
+    case "yake":h+=`<div class="q">${who}やけっぱちになりますか？</div><div class="note">ビリで差が大きいときだけ出ます。小判と札を全部捨てる代わりに、${CFG.YAKE_TURNS}番のあいだ さいころ3つ・払いを踏み倒し・勝負の取り分が倍。1回の対局で1度だけ。</div>
+      <div class="row"><button class="btn main" data-a='{"y":true}' data-p="${p}">やけっぱちになる</button><button class="btn" data-a='{"y":false}' data-p="${p}">やめておく</button></div>`;break;
+    case "pre":{
+      if(UI.tgtFor>=0){const k=P.items[UI.tgtFor];h+=`<div class="q">${who}「${ITEMS[k].n}」をだれに？</div><div class="row">${S.ps.map((Q,j)=>j===p?"":`<button class="btn" data-a='${JSON.stringify({k:"item",i:UI.tgtFor,t:j})}' data-p="${p}"><span class="pdot" style="display:inline-block;background:${COLORS[j]}"></span> ${esc(Q.name)}</button>`).join("")}<button class="btn small" id="bTgtCancel">やめる</button></div>`;break}
+      h+=`<div class="q">${who}さいころを振ろう${S.useHaya?"（早駆け: 3つ）":P.yake?"（やけっぱち: 3つ）":""}</div><div class="row"><button class="btn main big" data-a='{"k":"roll"}' data-p="${p}">🎲 振る</button></div>`;
+      if(P.items.length)h+=`<div class="items">${P.items.map((k,i)=>`<button class="item" ${canUse(S,p,k)?"":"disabled"} data-item="${i}" data-p="${p}" title="${esc(ITEMS[k].d)}">${esc(ITEMS[k].n)}<br><span class="note">${esc(ITEMS[k].d)}</span></button>`).join("")}</div>`;
+      break}
+    case "buy":{const C=CELLS[W.c];h+=`<div class="q">${who}${esc(C.n)}を${C.price}両で買いますか？</div><div class="note">${STREETS[C.st].n}。止まった人から${Math.round(C.price*CFG.RENT*(1+CFG.MATE*sameStreet(S,p,C.st)))}両もらえます。同じ通りの町を持つほど、払いが5割ずつ上がります。</div>
+      <div class="row"><button class="btn main" data-a='{"y":true}' data-p="${p}">買う（のこり${P.cash-C.price}両）</button><button class="btn" data-a='{"y":false}' data-p="${p}">見送る</button></div>`;break}
+    case "up":{const C=CELLS[W.c],c=W.c;const nxt=rent(S,c,S.lv[c]+1);
+      h+=`<div class="q">${who}${esc(C.n)}の店を広げますか？（${upCost(c)}両）</div><div class="note">払いが ${rent(S,c)}両 → ${nxt}両 になります。</div>
+      <div class="row"><button class="btn main" data-a='{"y":true}' data-p="${p}">広げる</button><button class="btn" data-a='{"y":false}' data-p="${p}">今はいい</button></div>`;break}
+    case "duel":h+=`<div class="q">${who}${W.cross?"辻で":"同じマスにいる相手に"}勝負を挑みますか？</div><div class="note">狐拳で勝つと、小判の2割か、いちばん安い町を奪えます。</div><div class="row">${W.targets.map(t=>`<button class="btn main" data-a='{"t":${t}}' data-p="${p}"><span class="pdot" style="display:inline-block;background:${COLORS[t]}"></span> ${esc(S.ps[t].name)}（小判${S.ps[t].cash}）</button>`).join("")}<button class="btn" data-a='{"t":-1}' data-p="${p}">挑まない</button></div>`;break;
+    case "fist":{const D=S.duel,opp=D.a===p?D.b:D.a;h+=`<div class="q">${who}狐拳の勝負！ 相手: ${esc(S.ps[opp].name)}${D.round>1?`（あいこ、${D.round}回目）`:""}</div>
+      <div class="fist">${FIST.map((f,i)=>`<button class="btn" data-a='{"f":${i}}' data-p="${p}">${f.e} ${f.n}<small>${f.d}</small></button>`).join("")}</div>`;break}
+    case "prize":{const l=S.duel.lose,ts=towns(S,l).sort((x,y)=>townValue(S,x)-townValue(S,y)),m=S.ps[p].yake?2:1;
+      h+=`<div class="q">${who}勝った！ 何を奪う？</div><div class="row"><button class="btn main" data-a='{"c":"coin"}' data-p="${p}">小判 ${Math.floor(S.ps[l].cash*CFG.STEAL*m)}両</button>${W.town?`<button class="btn main" data-a='{"c":"town"}' data-p="${p}">町「${esc(CELLS[ts[0]].n)}」${m>1&&ts[1]!=null?"ほか1つ":""}</button>`:""}</div>`;break}
+  }
+  return h+`</div>`;
+}
+function endHTML(){
+  const o=S.order;
+  let h=`<div class="card"><div style="font-size:22px;font-weight:bold;text-align:center">🏆 ${esc(S.ps[o[0]].name)}が千両長者！</div>
+  <table class="res"><tr><th>順位</th><th>小判</th><th>町</th><th>ほうび</th><th>合計</th></tr>`;
+  o.forEach((i,k)=>{const P=S.ps[i],tv=towns(S,i).reduce((a,c)=>a+townValue(S,c),0),b=(S.bonus.town===i?CFG.BONUS:0)+(S.bonus.duel===i?CFG.BONUS:0);
+    h+=`<tr><td>${k+1}. <span class="pdot" style="display:inline-block;background:${COLORS[i]}"></span> ${esc(P.name)}</td><td>${P.cash}</td><td>${tv}</td><td>${b||""}</td><td><b>${S.final[i]}</b></td></tr>`});
+  h+=`</table><p class="note">ほうび: いちばん町を持つ人（${S.bonus.town>=0?esc(S.ps[S.bonus.town].name):"なし"}）と、いちばん勝負に勝った人（${S.bonus.duel>=0?esc(S.ps[S.bonus.duel].name):"なし"}）に${CFG.BONUS}両ずつ。</p>
+  <div class="row" style="justify-content:center">${isHost()?`<button class="btn main" id="bAgain">同じ顔ぶれでもう一局</button><button class="btn" id="bToSetup">顔ぶれを変える</button>`:`<span class="note">部屋の人が次を決めるのを待っています…</span>`}</div></div>`;
+  return h;
+}
+function playHTML(){
+  return `<div class="top"><button class="btn small" id="bQuit">${UI.quitAsk?"本当にやめる":"やめる"}</button><span class="ttl">千両すごろく</span></div>
+  ${playersHTML()}${boardHTML()}${actionHTML()}
+  <details><summary class="note">できごとの記録</summary><div class="log">${S.log.map(esc).join("<br>")}</div></details>
+  <details><summary class="note">きまり</summary><div class="note">${rulesHTML()}</div></details>`;
+}
+function rulesHTML(){
+  return `2つのさいころで進む。日本橋を通ると給金${CFG.SALARY}両。<br>空いた町に止まると買える。人の町に止まると払う（持ち主が同じ通りの町を持つほど5割ずつ上がり、店を広げるともっと上がる）。自分の町に止まると店を広げられる。<br>同じマスで止まると勝負を挑める（辻ならだれにでも）。狐拳: 🦊狐は👴庄屋に、👴庄屋は🔫鉄砲に、🔫鉄砲は🦊狐に勝つ。勝つと小判2割か、いちばん安い町を奪う。<br>払えないときは町を半値で手放す（抜ける人は出ない）。<br>ビリで差が開くと「やけっぱち」になれる。<br>${CFG.DAYS}日たったら、小判＋町の値打ち＋ほうびで、いちばんの人が勝ち。`;
+}
+function titleHTML(){
+  let h=`<h1>千両すごろく</h1><p class="subt">江戸の町を買い、狐拳で奪い合う。${CFG.DAYS}日でいちばんの長者が勝ち（2〜4人・30分ほど）</p>`;
+  if(UI.notice)h+=`<p class="msg bad">${esc(UI.notice)}</p>`;
+  h+=`<div class="card"><div class="row"><input type="text" id="nameIn" maxlength="8" placeholder="あなたの名前" value="${esc(UI.name)}" style="flex:1;min-width:140px"></div>
+  <button class="btn main big" id="bSetup" style="width:100%">この画面で遊ぶ（コンピュータ・同じ画面の人）</button>
+  <div class="row"><button class="btn" id="bHost" style="flex:1">部屋を作る（友だちを招く）</button><button class="btn" id="bJoin" style="flex:1">部屋に入る</button></div></div>
+  <details class="card"><summary>きまり</summary><p class="note">${rulesHTML()}</p></details>`;
+  return h;
+}
+// 顔ぶれ: kind "me"(この端末)/"cpu"/"far"(友だち)
+function setupHTML(net){
+  const st=UI.setup;
+  let h=`<div class="top"><button class="btn small" id="bHome">題へ</button><span class="ttl">${net?"部屋を作る":"顔ぶれ"}</span></div><div class="card"><b>この卓（${st.seats.length}人）</b>`;
+  st.seats.forEach((s,i)=>{h+=`<div class="seat"><span class="pdot" style="background:${COLORS[i]}"></span><span class="nm">${esc(s.name)} <span class="note">${s.kind==="cpu"?"コンピュータ":s.kind==="far"?"友だち":i===0?"あなた":"この画面の人"}</span></span>${i>0&&s.kind!=="far"?`<button class="btn small" data-del="${i}">外す</button>`:""}</div>`});
+  h+=`<div class="row">${st.seats.length<4?`<button class="btn small" id="bAddCpu">＋ コンピュータ</button>${net?"":`<button class="btn small" id="bAddMe">＋ この画面の人</button>`}`:""}</div>
+  <div class="row"><span class="note">日数</span>${[10,16,24].map(d=>`<button class="btn small ${st.days===d?"main":""}" data-days="${d}">${d}日${d===10?"（20分）":d===16?"（30分）":"（45分）"}</button>`).join("")}</div></div>`;
+  if(net)h+=netSlotsHTML();
+  h+=`<button class="btn main big" id="bStart" style="width:100%" ${st.seats.length<2?"disabled":""}>${st.seats.length<2?"2人以上で始められます":"始める"}</button>`;
+  return h;
+}
+function render(){
+  let h="";
+  if(UI.screen==="title")h=titleHTML();
+  else if(UI.screen==="setup")h=setupHTML(false);
+  else if(UI.screen==="host")h=setupHTML(true);
+  else if(UI.screen==="join")h=joinHTML();
+  else if(UI.screen==="play"&&S)h=playHTML();
+  $("app").innerHTML=h;
+  $("bSound").textContent=SND.hardMute?"音なし（確認用）":SND.on?"音: あり":"音: なし";
+  bind();
+}
+function bind(){
+  const on=(id,fn)=>{const e=$(id);if(e)e.onclick=fn};
+  const ni=$("nameIn");if(ni)ni.oninput=()=>{UI.name=ni.value;store.set("senryo-name",UI.name)};
+  on("bSetup",()=>{UI.setup={seats:[{name:myName(),kind:"me"},{name:CPU_NAMES[0],kind:"cpu"},{name:CPU_NAMES[1],kind:"cpu"}],days:CFG.DAYS};UI.screen="setup";render()});
+  on("bHome",()=>{netClose();UI.screen="title";UI.notice="";render()});
+  on("bAddCpu",()=>{const st=UI.setup;const used=st.seats.map(s=>s.name);const nm=CPU_NAMES.find(n=>!used.includes(n))||"からくり";st.seats.push({name:nm,kind:"cpu"});render();netLobby()});
+  on("bAddMe",()=>{const st=UI.setup;st.seats.push({name:CNAME[st.seats.length]+"の人",kind:"me"});render()});
+  document.querySelectorAll("[data-del]").forEach(e=>e.onclick=()=>{UI.setup.seats.splice(+e.dataset.del,1);render();netLobby()});
+  document.querySelectorAll("[data-days]").forEach(e=>e.onclick=()=>{UI.setup.days=+e.dataset.days;render();netLobby()});
+  on("bStart",()=>{const st=UI.setup;if(st.seats.length<2)return;sfx("pick");if(UI.screen==="host")netStartGame();else startLocal(st.seats.map(s=>({...s})),st.days)});
+  on("bQuit",()=>{if(!UI.quitAsk&&!S.over){UI.quitAsk=true;render();return}UI.quitAsk=false;netClose(true);S=null;UI.screen="title";render()});
+  on("bAgain",()=>{if(NET.host){netStartGame();return}const seats=S.ps.map(P=>({name:P.name,kind:P.kind}));startLocal(seats,S.days)});
+  on("bToSetup",()=>{S=null;UI.screen=NET.host?"host":"setup";render();netLobby()});
+  on("bTgtCancel",()=>{UI.tgtFor=-1;render()});
+  on("bUncover",()=>{UI.cover=+$("bUncover").dataset.p;render()});
+  document.querySelectorAll("[data-a]").forEach(e=>e.onclick=()=>{const p=+e.dataset.p,a=JSON.parse(e.dataset.a);if(S.wait&&S.wait.k==="fist")UI.cover=-1;sfx("pick");localAct(p,a)});
+  document.querySelectorAll("[data-item]").forEach(e=>e.onclick=()=>{const p=+e.dataset.p,i=+e.dataset.item,k=S.ps[p].items[i];if(ITEMS[k].tgt){UI.tgtFor=i;render()}else localAct(p,{k:"item",i})});
+  document.querySelectorAll("[data-cell]").forEach(e=>e.onclick=()=>{const c=+e.dataset.cell;UI.info=UI.info===c?-1:c;render()});
+  // 通信
+  on("bHost",()=>netHostOpen());on("bJoin",()=>netJoinOpen());
+  on("bNewInv",()=>netNewInvite());
+  document.querySelectorAll("[data-accept]").forEach(e=>e.onclick=()=>netAccept(e.dataset.accept));
+  document.querySelectorAll("[data-draft]").forEach(e=>e.oninput=()=>{const id=e.dataset.draft;if(id==="join"){if(NET.guest)NET.guest.draft=e.value}else{const s=NET.slots.find(x=>x.id===id);if(s)s.draft=e.value}});
+  on("bReply",()=>netMakeReply());
+  document.querySelectorAll("[data-copy]").forEach(e=>e.onclick=()=>{const t=$(e.dataset.copy);if(!t)return;(navigator.clipboard?navigator.clipboard.writeText(t.value):Promise.reject()).then(()=>{e.textContent="コピーしました"},()=>{t.select();e.textContent="選んだ文字をコピーしてください"})});
+}
+$("bSound").onclick=()=>{if(SND.hardMute)return;SND.on=!SND.on;store.set("senryo-sound",SND.on);if(SND.on)sfx("pick");render()};
+
+/* ================= 離れた友だちと（招待コードで直接つなぐ。友だち1人に1つのコード） =================
+   部屋の人の端末が対局を進める。友だちには、狐拳の選んだ手を隠した写しを送る */
+const RTC_CFG={iceServers:[{urls:["stun:stun.l.google.com:19302","stun:stun.cloudflare.com:3478"]}]};
+const b64=buf=>{let s="";const u=new Uint8Array(buf);for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s)};
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const b64u=buf=>b64(buf).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const unb64u=s=>{s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";return unb64(s)};
+async function packDesc(desc){
+  const json=JSON.stringify({t:desc.type==="offer"?"o":"a",s:desc.sdp});
+  if(typeof CompressionStream==="function"){try{const buf=await new Response(new Blob([json]).stream().pipeThrough(new CompressionStream("deflate"))).arrayBuffer();return "SRY1-"+b64u(buf)}catch(e){}}
+  return "SRY0-"+b64u(new TextEncoder().encode(json));
+}
+async function unpackDesc(text){
+  const m=/SRY([01])-([A-Za-z0-9_-]+)/.exec(String(text||"").replace(/\s+/g,""));
+  if(!m)throw new Error("コードが読み取れません。「SRY」で始まる文字を、最後まで丸ごと貼ってください。");
+  let json;
+  try{const bytes=unb64u(m[2]);if(m[1]==="1"){if(typeof DecompressionStream!=="function")throw 0;json=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate"))).text()}else json=new TextDecoder().decode(bytes)}
+  catch(e){throw new Error("コードが途中で切れているようです。もう一度、最後まで丸ごとコピーしてください。")}
+  let o;try{o=JSON.parse(json)}catch(e){throw new Error("コードが壊れているようです。もう一度コピーしてください。")}
+  if(!o||typeof o.s!=="string"||(o.t!=="o"&&o.t!=="a"))throw new Error("このゲームのコードではありません。");
+  return {type:o.t==="o"?"offer":"answer",sdp:o.s};
+}
+function waitIce(pc,ms){return new Promise(res=>{if(pc.iceGatheringState==="complete")return res();const t=setTimeout(res,ms||4000);pc.addEventListener("icegatheringstatechange",()=>{if(pc.iceGatheringState==="complete"){clearTimeout(t);res()}})})}
+function linkDC(pc,dc){
+  const c={pc,dc,open:false,closed:false,on:{},q:[],
+    send(o){if(dc.readyState==="open"){try{dc.send(JSON.stringify(o))}catch(e){}}},
+    close(){try{pc.close()}catch(e){}end()}};
+  const end=()=>{if(c.closed)return;c.closed=true;c.open=false;if(c.on.close)c.on.close()};
+  dc.onopen=()=>{c.open=true;if(c.on.open)c.on.open()};
+  dc.onmessage=e=>{if(typeof e.data!=="string"||e.data.length>200000)return;let m;try{m=JSON.parse(e.data)}catch(_){return}if(c.on.msg)c.on.msg(m);else if(c.q.length<50)c.q.push(m)};
+  dc.onclose=end;
+  pc.addEventListener("connectionstatechange",()=>{if(pc.connectionState==="failed"||pc.connectionState==="closed")end()});
+  return c;
+}
+const NET={host:false,slots:[],guest:null};
+let slotNo=0;
+function netClose(bye){
+  for(const s of NET.slots){if(s.conn){if(bye)s.conn.send({t:"bye"});s.conn.on.close=null;s.conn.close()}else if(s.pc){try{s.pc.close()}catch(e){}}}
+  const g=NET.guest;if(g){if(g.conn){if(bye)g.conn.send({t:"bye"});g.conn.on.close=null;g.conn.close()}else if(g.pc){try{g.pc.close()}catch(e){}}}
+  NET.host=false;NET.slots=[];NET.guest=null;
+}
+function netHostOpen(){
+  netClose();NET.host=true;
+  UI.setup={seats:[{name:myName(),kind:"me"}],days:CFG.DAYS};UI.screen="host";render();
+}
+function netSlotsHTML(){
+  let h=`<div class="card"><b>友だちを招く</b><p class="note">友だち1人ごとに「招待コード」を作り、返ってきた「返事コード」を貼ります。</p>`;
+  for(const s of NET.slots){
+    if(s.done)continue;
+    h+=`<div class="slot"><b>友だち${s.no}</b>`;
+    if(s.making)h+=`<p class="note">招待コードを作っています…</p>`;
+    else if(s.err)h+=`<p class="msg bad">${esc(s.err)}</p>`;
+    else{h+=`<p class="note">1　この招待コードを送る</p><textarea id="code_${s.id}" readonly rows="2">${esc(s.code)}</textarea><div class="row"><button class="btn small" data-copy="code_${s.id}">コピー</button></div>
+      <p class="note">2　返事コードを貼って「つなぐ」</p><textarea rows="2" data-draft="${s.id}" placeholder="SRY で始まる返事コード">${esc(s.draft||"")}</textarea><div class="row"><button class="btn main small" data-accept="${s.id}">つなぐ</button>${s.waiting?`<span class="note">つないでいます…</span>`:""}</div>`}
+    h+=`</div>`;
+  }
+  const n=UI.setup.seats.length+NET.slots.filter(s=>!s.done).length;
+  h+=`<button class="btn" id="bNewInv" ${n>=4?"disabled":""}>＋ 招待コードを作る</button><p class="note">claude.ai の画面の中では、つながりません。ちがうネットワーク同士では、つながらないことがあります。</p></div>`;
+  return h;
+}
+async function netNewInvite(){
+  const s={id:"s"+(++slotNo),no:slotNo,making:true,code:"",draft:"",err:""};NET.slots.push(s);render();
+  try{
+    const pc=new RTCPeerConnection(RTC_CFG);s.pc=pc;const conn=linkDC(pc,pc.createDataChannel("sry",{ordered:true}));
+    await pc.setLocalDescription(await pc.createOffer());await waitIce(pc);
+    s.code=await packDesc(pc.localDescription);s.making=false;
+    conn.on.open=()=>{s.conn=conn;s.done=true;const st=UI.setup;if(st&&st.seats.length<4){st.seats.push({name:"友だち"+s.no,kind:"far",cid:s.id})}conn.send({t:"hello?"});sfx("pick");render();netLobby()};
+    conn.on.msg=m=>hostOnMsg(s,m);
+    conn.on.close=()=>hostLost(s);
+  }catch(e){s.making=false;s.err="招待コードを作れませんでした。この画面では、直接つなぐ通信が使えないようです。"}
+  render();
+}
+async function netAccept(id){
+  const s=NET.slots.find(x=>x.id===id);if(!s)return;s.err="";
+  try{const d=await unpackDesc(s.draft);
+    if(d.type!=="answer")throw new Error("これは招待コードです。友だちから届いた「返事コード」を貼ってください。");
+    if(s.pc.signalingState!=="have-local-offer")throw new Error("この招待はもう使われています。新しい招待コードを作ってください。");
+    await s.pc.setRemoteDescription(d);s.waiting=true;
+  }catch(e){s.err=e&&e.message||String(e)}
+  render();
+}
+function seatOfSlot(s){return S?S.ps.findIndex(P=>P.cid===s.id):-1}
+function hostOnMsg(s,m){
+  if(!m)return;
+  if(m.t==="bye"){s.bye=true;return}
+  if(m.t==="name"){const nm=String(m.name||"").slice(0,8)||("友だち"+s.no);s.name=nm;const st=UI.setup;if(st){const x=st.seats.find(q=>q.cid===s.id);if(x)x.name=nm}if(S){const i=seatOfSlot(s);if(i>=0)S.ps[i].name=nm}render();netLobby();return}
+  if(m.t==="act"&&S){const i=seatOfSlot(s);if(i<0||m.p!==i)return;if(act(S,i,m.a)){afterChange()}else netBroadcast();return}
+}
+function hostLost(s){
+  const nm=s.name||("友だち"+s.no);
+  if(UI.setup){UI.setup.seats=UI.setup.seats.filter(q=>q.cid!==s.id)}
+  NET.slots=NET.slots.filter(x=>x!==s);
+  if(S){const i=seatOfSlot(s);if(i>=0){S.ps[i].kind="cpu";S.ps[i].cid=null;S.ps[i].name=nm+"（代打）";log(S,`${nm}とのつながりが切れたので、コンピュータが代わりに打ちます`);afterChange()}}
+  else render();
+}
+function netLobby(){
+  if(!NET.host||!UI.setup)return;
+  const m={t:"lobby",seats:UI.setup.seats.map(q=>({name:q.name,kind:q.kind,cid:q.cid||null})),days:UI.setup.days};
+  for(const s of NET.slots)if(s.conn&&s.conn.open)s.conn.send({...m,me:s.id});
+}
+function netStartGame(){
+  const st=UI.setup;
+  const seats=(S&&S.over?S.ps.map(P=>({name:P.name,kind:P.kind==="me"?"me":P.cid?"far":"cpu",cid:P.cid})):st.seats.map(q=>({...q}))).filter(q=>q.kind!=="far"||NET.slots.some(s=>s.id===q.cid&&s.conn&&s.conn.open));
+  S=newGame(seats,{days:st.days});MYSEATS=[0];UI.screen="play";UI.tgtFor=-1;UI.anim=null;UI.lastMoveNo=0;
+  afterChange();
+}
+// 友だちに送る写し（狐拳の、まだ相手に見せない手は消す）
+function pubState(forId){
+  const W=S.wait&&S.wait.k==="fist"?{...S.wait,picks:Object.fromEntries(Object.keys(S.wait.picks).map(k=>[k,-1]))}:S.wait;
+  return {t:"state",S:{...S,wait:W},you:S.ps.findIndex(P=>P.cid===forId)};
+}
+function netBroadcast(){if(!NET.host||!S)return;for(const s of NET.slots)if(s.conn&&s.conn.open)s.conn.send(pubState(s.id))}
+// 友だちの側
+function netJoinOpen(){netClose();NET.guest={draft:"",reply:"",err:"",busy:false,connected:false,lobby:null};UI.screen="join";render()}
+async function netMakeReply(){
+  const g=NET.guest;if(!g||g.busy)return;g.err="";g.busy=true;render();
+  try{
+    const d=await unpackDesc(g.draft);
+    if(d.type!=="offer")throw new Error("これは返事コードです。部屋の人から届いた「招待コード」を貼ってください。");
+    const pc=new RTCPeerConnection(RTC_CFG);g.pc=pc;
+    const opened=new Promise(res=>{pc.ondatachannel=e=>{const conn=linkDC(pc,e.channel);if(e.channel.readyState==="open"){conn.open=true;res(conn)}else conn.on.open=()=>res(conn)}});
+    await pc.setRemoteDescription(d);await pc.setLocalDescription(await pc.createAnswer());await waitIce(pc);
+    g.reply=await packDesc(pc.localDescription);g.busy=false;render();
+    pc.addEventListener("connectionstatechange",()=>{if(pc.connectionState==="failed"&&NET.guest===g&&!g.connected){g.err="つながりませんでした。ちがうネットワーク同士だと、つながらないことがあります。";render()}});
+    const conn=await opened;if(NET.guest!==g){conn.close();return}
+    g.conn=conn;g.connected=true;conn.on.msg=guestOnMsg;conn.q.splice(0).forEach(guestOnMsg);
+    conn.on.close=()=>{if(NET.guest!==g)return;const bye=g.bye;NET.guest=null;S=null;UI.screen="title";UI.notice=bye?"部屋の人が部屋を閉じました。":"部屋の人とのつながりが切れました。";render()};
+    conn.send({t:"name",name:myName()});sfx("pick");render();
+  }catch(e){g.busy=false;g.err=e&&e.message||String(e);render()}
+}
+function netSend(m){if(NET.guest&&NET.guest.conn)NET.guest.conn.send(m)}
+function guestOnMsg(m){
+  const g=NET.guest;if(!g||!m)return;
+  if(m.t==="bye"){g.bye=true;return}
+  if(m.t==="lobby"){g.lobby=m;if(UI.screen==="join"||(S&&S.over)){S=null;UI.screen="join"}render();return}
+  if(m.t==="state"){
+    const fresh=!S;S=m.S;MYSEATS=m.you>=0?[m.you]:[];
+    if(UI.screen!=="play"||fresh){UI.screen="play";UI.anim=null;UI.lastMoveNo=S.move?S.move.no:0}
+    afterChange();return;
+  }
+}
+function joinHTML(){
+  const g=NET.guest||{};
+  let h=`<div class="top"><button class="btn small" id="bHome">題へ</button><span class="ttl">部屋に入る</span></div><div class="card">`;
+  if(!g.connected){
+    h+=`<p class="note">1　部屋の人から届いた「招待コード」を貼る</p><textarea rows="3" data-draft="join" placeholder="SRY で始まる招待コード" ${g.reply?"disabled":""}>${esc(g.draft||"")}</textarea>
+      <div class="row"><button class="btn main" id="bReply" ${g.busy||g.reply?"disabled":""}>${g.busy?"作っています…":"返事コードを作る"}</button></div>`;
+    if(g.reply)h+=`<p class="note">2　この「返事コード」を、部屋の人に送り返す</p><textarea id="replyCode" readonly rows="3">${esc(g.reply)}</textarea><div class="row"><button class="btn small" data-copy="replyCode">コピー</button></div><p class="note">部屋の人がつなぐのを待っています…</p>`;
+  }else{
+    h+=`<div class="ok">つながりました！ 部屋の人が始めるのを待っています。</div>`;
+    if(g.lobby)h+=`<b>この卓（${g.lobby.seats.length}人・${g.lobby.days}日）</b>${g.lobby.seats.map((q,i)=>`<div class="seat"><span class="pdot" style="background:${COLORS[i]}"></span><span class="nm">${esc(q.name)} <span class="note">${q.cid===g.lobby.me?"あなた":q.kind==="cpu"?"コンピュータ":i===0?"部屋の人":"友だち"}</span></span></div>`).join("")}`;
+  }
+  if(g.err)h+=`<p class="msg bad">${esc(g.err)}</p>`;
+  return h+`<p class="note">ちがうネットワーク同士では、つながらないことがあります。</p></div>`;
+}
+
+/* ---------- 確認用 ---------- */
+window.DEV={get S(){return S},get UI(){return UI},get NET(){return NET},CFG,CELLS,newGame,act,cpuAct,simGame,assets,rank,towns,rent,
+  mute(){SND.hardMute=true;render()},
+  // コンピュータだけの対局を n 回: 長さ・勝者の席・逆転・勝負の数など
+  sims(n=200,players=4,lazy0=false){const out={n,players,seatWin:new Array(players).fill(0),acts:0,duels:0,yake:0,yakeWin:0,lead5Win:0,spread:0,townsSold:0,full:0,maxAssets:0};
+    for(let g=0;g<n;g++){const {S,acts}=simGame(players,g*7919+13,lazy0);out.acts+=acts;out.seatWin[S.order[0]]++;
+      out.duels+=S.ps.reduce((a,P)=>a+P.wins,0);const y=S.ps.filter(P=>P.yakeUsed);out.yake+=y.length;if(S.ps[S.order[0]].yakeUsed)out.yakeWin++;
+      out.spread+=S.final[S.order[0]]-S.final[S.order[S.order.length-1]];out.maxAssets=Math.max(out.maxAssets,S.final[S.order[0]]);
+      out.townsSold+=S.log.filter(t=>t.includes("手放した")).length;out.full+=[0,1,2,3].filter(st=>fullStreet(S,st)>=0).length}
+    for(const k of ["acts","duels","yake","spread","townsSold","full"])out[k]=+(out[k]/n).toFixed(2);return out}
+};
+render();
+</script>
+</body>
+</html>
